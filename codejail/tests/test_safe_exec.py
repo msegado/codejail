@@ -1,13 +1,9 @@
 """Test safe_exec.py"""
 
-from __future__ import absolute_import
 import os.path
 import textwrap
 import zipfile
 from unittest import SkipTest, TestCase
-
-import six
-from builtins import bytes
 
 try:
     from cStringIO import StringIO
@@ -103,7 +99,7 @@ class SafeExecTests(TestCase):
 
     def test_printing_stuff_when_you_shouldnt(self):
         globs = {}
-        self.safe_exec("from __future__ import print_function; a = 17; print('hi!')", globs)
+        self.safe_exec("a = 17; print('hi!')", globs)
         self.assertEqual(globs['a'], 17)
 
     def test_importing_lots_of_crap(self):
@@ -136,25 +132,18 @@ class SafeExecTests(TestCase):
             ("also.dat", b"\x01\xff\x02\xfe"),
         ]
         self.safe_exec(textwrap.dedent("""\
-            import six
             import io
             with io.open("extra.txt", 'r') as f:
                 extra = f.read()
             with open("also.dat", 'rb') as f:
-                if six.PY2:
-                    also = f.read().encode("hex")
-                else:
-                    also = f.read().hex()
+                also = f.read().hex()
             """), globs, extra_files=extras)
 
         self.assertEqual(globs['extra'], "I'm extra!\n")
         self.assertEqual(globs['also'], "01ff02fe")
 
     def test_extra_files_as_pythonpath_zipfile(self):
-        if six.PY2:
-            zipstring = StringIO()
-        else:
-            zipstring = BytesIO()
+        zipstring = BytesIO()
         zipf = zipfile.ZipFile(zipstring, "w")
         zipf.writestr("zipped_module1.py", bytes(textwrap.dedent("""\
             def func1(x):

@@ -1,12 +1,10 @@
 """Safe execution of untrusted Python code."""
 
-from __future__ import absolute_import
 import logging
 import os.path
 import shutil
 import sys
 import textwrap
-import six
 import inspect
 
 try:
@@ -83,7 +81,6 @@ def safe_exec(code, globals_dict, files=None, python_path=None, slug=None,
     the_code.append(textwrap.dedent(
         """
         import sys
-        import six
         try:
             import simplejson as json
         except ImportError:
@@ -166,10 +163,10 @@ def json_safe(d):
 
     """
 
-    # six.binary_type is here because bytes are sometimes ok if they represent valid utf8 
+    # bytes is here because bytes are sometimes ok if they represent valid utf8 
     # so we consider them valid for now and try to decode them with decode_object.  If that
     # doesn't work they'll get dropped later in the process.
-    ok_types = (type(None), int, float, six.binary_type, six.text_type, list, tuple, dict)
+    ok_types = (type(None), int, float, bytes, str, list, tuple, dict)
 
     def decode_object(obj):
         """
@@ -193,7 +190,7 @@ def json_safe(d):
             return new_list
         elif isinstance(obj, dict):
             new_dict = {}
-            for k,v in six.iteritems(obj):
+            for k,v in obj.items():
                 new_key = decode_object(k)
                 new_value = decode_object(v)
                 new_dict[new_key] = new_value
@@ -203,7 +200,7 @@ def json_safe(d):
 
     bad_keys = ("__builtins__",)
     jd = {}
-    for k, v in six.iteritems(d):
+    for k, v in d.items():
         if not isinstance(v, ok_types):
             continue
         if k in bad_keys:

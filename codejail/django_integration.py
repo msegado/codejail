@@ -4,7 +4,6 @@ Code to glue codejail into a Django environment.
 
 """
 
-from __future__ import absolute_import
 from django.core.exceptions import MiddlewareNotUsed
 from django.conf import settings
 from django.utils.deprecation import MiddlewareMixin

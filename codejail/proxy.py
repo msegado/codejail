@@ -1,6 +1,5 @@
 """A proxy subprocess-making process for CodeJail."""
 
-from __future__ import absolute_import
 import ast
 import logging
 import os
@@ -8,10 +7,8 @@ import os.path
 import subprocess
 import sys
 import time
-import six
 
 from .subproc import run_subprocess
-from six.moves import range
 
 log = logging.getLogger("codejail")
 
@@ -20,30 +17,26 @@ log = logging.getLogger("codejail")
 # communicate a few values, and unpack them.  Lastly, we need to be sure we can
 # handle binary data.  Serializing with repr() and deserializing the literals
 # that result give us all the properties we need.
-if six.PY2:
-    # Python 2: everything is bytes everywhere.
-    serialize_in = serialize_out = repr
-    deserialize_in = deserialize_out = ast.literal_eval
-else:
-    # Python 3: the outside of subprocess talks in bytes (the pipes from
-    # subprocess.* are all about bytes). The inside of the Python code it runs
-    # talks in text (reading from sys.stdin is text, writing to sys.stdout
-    # expects text).
-    def serialize_out(val):
-        """Send data out of the proxy process. Needs to make unicode."""
-        return repr(val)
 
-    def serialize_in(val):
-        """Send data into the proxy process. Needs to make bytes."""
-        return serialize_out(val).encode('utf8')
+# In python 3, the outside of subprocess talks in bytes (the pipes from
+# subprocess.* are all about bytes). The inside of the Python code it runs
+# talks in text (reading from sys.stdin is text, writing to sys.stdout
+# expects text).
+def serialize_out(val):
+    """Send data out of the proxy process. Needs to make unicode."""
+    return repr(val)
 
-    def deserialize_in(ustr):
-        """Get data into the proxy process. Needs to take unicode."""
-        return ast.literal_eval(ustr)
+def serialize_in(val):
+    """Send data into the proxy process. Needs to make bytes."""
+    return serialize_out(val).encode('utf8')
 
-    def deserialize_out(bstr):
-        """Get data from the proxy process. Needs to take bytes."""
-        return deserialize_in(bstr.decode('utf8'))
+def deserialize_in(ustr):
+    """Get data into the proxy process. Needs to take unicode."""
+    return ast.literal_eval(ustr)
+
+def deserialize_out(bstr):
+    """Get data from the proxy process. Needs to take bytes."""
+    return deserialize_in(bstr.decode('utf8'))
 
 
 ##
@@ -83,12 +76,12 @@ def run_subprocess_through_proxy(*args, **kwargs):
             log.exception("Proxy process failed")
             # Give the proxy process a chance to die completely if it is dying.
             time.sleep(.001)
-            last_exception = sys.exc_info()
+            last_exception = e
             continue
 
     # If we finished all the tries, then raise the last exception we got.
     if last_exception:
-        six.reraise(*last_exception)
+        raise last_exception
 
 
 # There is one global proxy process.
